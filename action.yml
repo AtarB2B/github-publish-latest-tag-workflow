@@ -1,0 +1,51 @@
+name: Publish Latest Tag
+
+description: Publish Latest Tag
+
+inputs:
+  tag:
+    required: true
+    description: tag
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        ref: "${{ inputs.tag }}"
+
+    - name: Update Library
+      run: |
+        echo "${{secrets.SSH_PRIV_KEY_LIBRARY}}" > ssh-rsa.key
+        chmod 400 ssh-rsa.key
+        mkdir /root/.ssh && touch /root/.ssh/known_hosts
+        eval $(ssh-agent) && ssh-add ssh-rsa.key
+        ssh-keyscan -H github.com >> /root/.ssh/known_hosts
+        chmod +x ./update_library.sh && ./update_library.sh -s
+        cat ./library/requirements.txt >> requirements.txt
+
+    - name: Deploy latest tag ${{github.event.repository.name}} - ${{ inputs.tag }}
+      run: |
+        echo $ATAR_CREDENTIALS|gcloud auth activate-service-account --key-file=-
+        ${RETRY} gcloud -q --project=${ATAR_PROJECT} app deploy app.dev.yaml -v=${{ inputs.tag }} --promote
+        # Incluir aqui stage com testes automatizados e não permitir
+        # criação da release se reprovar a release candidate
+        # A ideia aqui é incluir PR's ao invés de deletar branchs e criar
+        # novas e após a criação do PR executa os testes,
+        # passando deixa mergear senão time de QA pode ajustar, caso ncessário.
+
+    - name: Create TAR release
+      run: atar-cli --tar -n=${{github.event.repository.name}}-${{ inputs.tag }}
+
+    - name: Upload Release Asset
+      run: ${RETRY} gh release upload ${{ inputs.tag }} ${{github.event.repository.name}}-${{ inputs.tag }}.tar.gz
+
+    - name: Send Message to Slack
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{job.status}}
+        username: "DEPLOY_RC|${{github.event.repository.name}}|${{ inputs.tag }}"
+        author_name: ${{github.workflow}}
+        fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
+      if: always()
