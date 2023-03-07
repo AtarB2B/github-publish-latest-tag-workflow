@@ -21,23 +21,18 @@ runs:
     - name: Update Library
       run: |
         echo "${{ inputs.SSH_PRIV_KEY_LIBRARY }}" > ssh-rsa.key
-        sudo chmod 400 ssh-rsa.key
-        sudo mkdir /root/.ssh && touch /root/.ssh/known_hosts
-        sudo eval $(ssh-agent) && ssh-add ssh-rsa.key
-        sudo ssh-keyscan -H github.com >> /root/.ssh/known_hosts
-        sudo chmod +x ./update_library.sh && ./update_library.sh -s
-        sudo cat ./library/requirements.txt >> requirements.txt
+        chmod 400 ssh-rsa.key
+        mkdir /root/.ssh && touch /root/.ssh/known_hosts
+        eval $(ssh-agent) && ssh-add ssh-rsa.key
+        ssh-keyscan -H github.com >> /root/.ssh/known_hosts
+        chmod +x ./update_library.sh && ./update_library.sh -s
+        cat ./library/requirements.txt >> requirements.txt
       shell: bash
 
     - name: Deploy latest tag ${{github.event.repository.name}} - ${{ inputs.tag }}
       run: |
         echo $ATAR_CREDENTIALS|gcloud auth activate-service-account --key-file=-
         ${RETRY} gcloud -q --project=${ATAR_PROJECT} app deploy app.dev.yaml -v=${{ inputs.tag }} --promote
-        # Incluir aqui stage com testes automatizados e não permitir
-        # criação da release se reprovar a release candidate
-        # A ideia aqui é incluir PR's ao invés de deletar branchs e criar
-        # novas e após a criação do PR executa os testes,
-        # passando deixa mergear senão time de QA pode ajustar, caso ncessário.
       shell: bash
 
     - name: Create TAR release
