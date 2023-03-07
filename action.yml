@@ -24,6 +24,7 @@ runs:
         ssh-keyscan -H github.com >> /root/.ssh/known_hosts
         chmod +x ./update_library.sh && ./update_library.sh -s
         cat ./library/requirements.txt >> requirements.txt
+      shell: bash
 
     - name: Deploy latest tag ${{github.event.repository.name}} - ${{ inputs.tag }}
       run: |
@@ -34,12 +35,15 @@ runs:
         # A ideia aqui é incluir PR's ao invés de deletar branchs e criar
         # novas e após a criação do PR executa os testes,
         # passando deixa mergear senão time de QA pode ajustar, caso ncessário.
+      shell: bash
 
     - name: Create TAR release
       run: atar-cli --tar -n=${{github.event.repository.name}}-${{ inputs.tag }}
+      shell: bash
 
     - name: Upload Release Asset
       run: ${RETRY} gh release upload ${{ inputs.tag }} ${{github.event.repository.name}}-${{ inputs.tag }}.tar.gz
+      shell: bash
 
     - name: Send Message to Slack
       uses: 8398a7/action-slack@v3
