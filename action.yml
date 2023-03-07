@@ -21,12 +21,12 @@ runs:
     - name: Update Library
       run: |
         echo "${{ inputs.SSH_PRIV_KEY_LIBRARY }}" > ssh-rsa.key
-        chmod 400 ssh-rsa.key
-        mkdir /root/.ssh && touch /root/.ssh/known_hosts
-        eval $(ssh-agent) && ssh-add ssh-rsa.key
-        ssh-keyscan -H github.com >> /root/.ssh/known_hosts
-        chmod +x ./update_library.sh && ./update_library.sh -s
-        cat ./library/requirements.txt >> requirements.txt
+        sudo chmod 400 ssh-rsa.key
+        sudo mkdir /root/.ssh && touch /root/.ssh/known_hosts
+        sudo eval $(ssh-agent) && ssh-add ssh-rsa.key
+        sudo ssh-keyscan -H github.com >> /root/.ssh/known_hosts
+        sudo chmod +x ./update_library.sh && ./update_library.sh -s
+        sudo cat ./library/requirements.txt >> requirements.txt
       shell: bash
 
     - name: Deploy latest tag ${{github.event.repository.name}} - ${{ inputs.tag }}
